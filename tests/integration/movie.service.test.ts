@@ -1,4 +1,5 @@
 import { Movie } from '../../src/models/movie.model';
+import { Review } from '../../src/models/review.model';
 import * as movieService from '../../src/services/movie.service';
 import { BadRequestError, NotFoundError } from '../../src/utils/errors';
 import { useTestDatabase } from '../setup/db';
@@ -33,6 +34,15 @@ describe('movie.service', () => {
       expect(movie.title).toBe('Inception');
       expect(movie.reviewsCount).toBe(0);
       expect(await Movie.countDocuments()).toBe(1);
+    });
+
+    it('does not return the internal ratingsSum field', async () => {
+      const created = await movieService.createMovie(movieData(), adminId);
+
+      const movie = await movieService.getMovieById(created.id);
+
+      expect(movie.toJSON()).not.toHaveProperty('ratingsSum');
+      expect(movie.toJSON()).toHaveProperty('reviewsCount', 0);
     });
 
     it('sets createdBy to the given user id', async () => {
@@ -211,6 +221,24 @@ describe('movie.service', () => {
       await movieService.deleteMovie(created.id);
 
       expect(await Movie.countDocuments()).toBe(0);
+    });
+
+    it("also deletes the movie's reviews, and only those", async () => {
+      const [movie, otherMovie] = await Movie.create([
+        savedMovieData(),
+        savedMovieData({ title: 'Other' }),
+      ]);
+      await Review.create([
+        { movieId: movie.id, userId: adminId, rating: 8, text: 'Great' },
+        { movieId: movie.id, userId: otherId, rating: 6, text: 'OK' },
+        { movieId: otherMovie.id, userId: adminId, rating: 5, text: 'Meh' },
+      ]);
+
+      await movieService.deleteMovie(movie.id);
+
+      const remaining = await Review.find();
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0].movieId.toString()).toBe(otherMovie.id);
     });
 
     it('throws NotFoundError when the movie does not exist', async () => {

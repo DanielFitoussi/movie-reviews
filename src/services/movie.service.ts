@@ -1,5 +1,6 @@
-import { isValidObjectId, QueryFilter } from 'mongoose';
+import { isValidObjectId, QueryFilter, Types } from 'mongoose';
 import { IMovie, Movie } from '../models/movie.model';
+import { Review } from '../models/review.model';
 import { BadRequestError, NotFoundError } from '../utils/errors';
 
 export interface MovieFilters {
@@ -99,4 +100,61 @@ export const deleteMovie = async (id: string): Promise<void> => {
   if (!movie) {
     throw movieNotFound();
   }
+  // Cascade delete: a movie's reviews can't exist without it.
+  await Review.deleteMany({ movieId: id });
+};
+
+// Changes a movie's stats after a review is created, edited or deleted:
+//   create: (+1, +rating)   edit: (0, newRating - oldRating)   delete: (-1, -rating)
+//
+// Everything happens in ONE update, and MongoDB applies a single-document update
+// atomically. So even when many reviews arrive at the same time, each update starts
+// from the latest values and none is lost. (Reading the movie in Node, computing,
+// and saving would let two requests both read count=0 and both write count=1.)
+//
+// The update is a "pipeline": its stages run in order inside MongoDB,
+// and the second stage sees the values the first stage just set.
+export const updateMovieStats = async (
+  movieId: Types.ObjectId | string,
+  countDelta: number,
+  ratingDelta: number,
+): Promise<void> => {
+  await Movie.updateOne(
+    { _id: movieId },
+    [
+      {
+        $set: {
+          reviewsCount: { $add: ['$reviewsCount', countDelta] },
+          ratingsSum: { $add: [{ $ifNull: ['$ratingsSum', 0] }, ratingDelta] },
+        },
+      },
+      {
+        $set: {
+          averageRating: {
+            $cond: [
+              { $eq: ['$reviewsCount', 0] },
+              0,
+              // Round to one decimal, halves up: floor(sum * 10 / count + 0.5) / 10.
+              // sum * 10 / count (not sum / count * 10) keeps a result like 72.5 exact.
+              // MongoDB's $round would round halves to even (7.25 -> 7.2).
+              {
+                $divide: [
+                  {
+                    $floor: {
+                      $add: [
+                        { $divide: [{ $multiply: ['$ratingsSum', 10] }, '$reviewsCount'] },
+                        0.5,
+                      ],
+                    },
+                  },
+                  10,
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ],
+    { updatePipeline: true }, // Mongoose 9 only accepts a pipeline with this option
+  );
 };
