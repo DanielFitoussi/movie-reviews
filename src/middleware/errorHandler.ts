@@ -29,6 +29,13 @@ export const errorHandler = (
     return;
   }
 
+  // MongoDB rejects a value that breaks a unique index (e.g. two users with the same
+  // username saved at the same moment, so both passed the service's check).
+  if (error instanceof Error && 'code' in error && error.code === 11000) {
+    res.status(409).json({ error: 'Duplicate value' });
+    return;
+  }
+
   // express.json() throws this when the request body isn't valid JSON.
   if (error instanceof SyntaxError && 'type' in error && error.type === 'entity.parse.failed') {
     res.status(400).json({ error: 'Invalid JSON body' });

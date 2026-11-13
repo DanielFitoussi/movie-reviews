@@ -10,7 +10,8 @@ export interface MovieFilters {
 }
 
 // Only these fields can come from the client. reviewsCount and averageRating
-// are calculated by the system, so they are never copied from the input.
+// are calculated by the system, and createdBy comes from the JWT,
+// so they are never copied from the input.
 const EDITABLE_FIELDS = [
   'title',
   'releaseYear',
@@ -75,8 +76,9 @@ export const getMovieById = async (id: string) => {
   return movie;
 };
 
-export const createMovie = async (input: Record<string, unknown>) => {
-  return Movie.create(pickEditableFields(input));
+// userId is the logged-in admin, taken from the JWT by the controller.
+export const createMovie = async (input: Record<string, unknown>, userId: string) => {
+  return Movie.create({ ...pickEditableFields(input), createdBy: userId });
 };
 
 export const updateMovie = async (id: string, input: Record<string, unknown>) => {

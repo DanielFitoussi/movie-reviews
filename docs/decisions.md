@@ -18,7 +18,10 @@ Decisions about details the assignment left open on purpose.
 - Each user has a `role`: `user` or `admin`.
 - On registration the role is always `user`, even if the request sends something else.
 - The first admin is created by the seed script, not through the API.
-- Usernames are unique.
+- Usernames are unique and case-insensitive (stored in lowercase, so `Dana` and `dana` are the same user). A duplicate returns 409.
+- Passwords must be at least 8 characters. They are stored hashed with bcrypt, never as plain text, and never returned by the API.
+- Login returns a JWT with the user's id and role. It is valid for 1 day (`JWT_EXPIRES_IN`).
+- A wrong username and a wrong password return the same 401 message, so the API doesn't reveal which usernames exist.
 
 ## Movies
 
