@@ -21,7 +21,14 @@ const userSchema = new Schema<IUser>(
     username: { type: String, required: true, trim: true, lowercase: true, unique: true },
     // select: false means queries don't return the password unless they ask for it
     // with .select('+password'). Only login needs it.
-    password: { type: String, required: true, minlength: MIN_PASSWORD_LENGTH, select: false },
+    // minlength has its own message because Mongoose's default one includes the value,
+    // which would send the password back to the client.
+    password: {
+      type: String,
+      required: true,
+      minlength: [MIN_PASSWORD_LENGTH, `password must be at least ${MIN_PASSWORD_LENGTH} characters`],
+      select: false,
+    },
     role: { type: String, enum: ROLES, default: 'user' },
   },
   {

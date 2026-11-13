@@ -41,6 +41,18 @@ describe('Auth API', () => {
       expect(res.body.details).toHaveProperty('password');
     });
 
+    it('never echoes a too-short password back in the response', async () => {
+      const password = 'abc';
+      const res = await request(app)
+        .post('/auth/register')
+        .send({ ...credentials, password });
+
+      expect(res.status).toBe(400);
+      // res.text is the raw response body, so this checks every field at once.
+      expect(res.text).not.toContain(password);
+      expect(res.body.details.password).toBe('password must be at least 8 characters');
+    });
+
     it('returns 409 when the username is taken', async () => {
       await request(app).post('/auth/register').send(credentials);
 

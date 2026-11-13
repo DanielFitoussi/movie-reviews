@@ -93,10 +93,7 @@ export const openapiSpec: OpenAPIV3.Document = {
             missingFields: { error: 'username and password are required' },
             shortPassword: {
               error: 'Validation failed',
-              details: {
-                password:
-                  'Path `password` (`abc`, length 3) is shorter than the minimum allowed length (8).',
-              },
+              details: { password: 'password must be at least 8 characters' },
             },
             invalidJson,
           }),
