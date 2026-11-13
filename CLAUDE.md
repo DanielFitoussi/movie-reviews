@@ -26,18 +26,19 @@ Design decisions are documented in 'docs/decisions.md' . Read it before working 
 
 ## Project state
 
-The project skeleton is in place: TypeScript, an Express server with `GET /health`, a MongoDB connection through Mongoose, and Jest tests. Movies are done (CRUD + search; writes are admin only). Users and JWT authentication are done (register, login, `authenticate`/`requireAdmin` middleware). Reviews are done (CRUD, movie stats, cascade delete). Swagger documentation is done (`GET /api-docs`). The seed script and linting aren't set up yet.
+The project skeleton is in place: TypeScript, an Express server with `GET /health`, a MongoDB connection through Mongoose, and Jest tests. Movies are done (CRUD + search; writes are admin only). Users and JWT authentication are done (register, login, `authenticate`/`requireAdmin` middleware). Reviews are done (CRUD, movie stats, cascade delete). Swagger documentation is done (`GET /api-docs`). The seed script is done (`npm run seed`). Linting isn't set up yet.
 
 - The code is TypeScript, written with `import`/`export` and compiled as CommonJS (`"type": "commonjs"`, `module: commonjs` in `tsconfig.json`).
 - TypeScript is pinned to `^6`. TypeScript 7 (the native compiler) doesn't expose the JS compiler API that `ts-jest` needs, so don't upgrade it until `ts-jest` supports it.
 - There's no build or start script yet. `npm run dev` runs the TypeScript directly with `tsx`.
-- `.env` is gitignored. Copy `.env.example` to `.env`. `MONGODB_URI` and `JWT_SECRET` are required, `PORT` defaults to 3000 and `JWT_EXPIRES_IN` to `1d`.
+- `.env` is gitignored. Copy `.env.example` to `.env`. `MONGODB_URI` and `JWT_SECRET` are required, `PORT` defaults to 3000 and `JWT_EXPIRES_IN` to `1d`. The seed also needs `ADMIN_USERNAME` and `ADMIN_PASSWORD`.
 
 ## Commands
 
 - `npm install`: install dependencies
 - `cp .env.example .env`: create the local env file (needs a running MongoDB)
 - `npm run dev`: start the server with auto-restart on save (`tsx watch src/server.ts`)
+- `npm run seed`: reset the database and fill it with sample data (refuses when `NODE_ENV=production` unless run as `npm run seed -- --force`)
 - `npm test`: run all Jest tests
 - `npx jest tests/health.test.ts`: run a single test file
 - `npx jest -t "health"`: run tests whose name matches a pattern
