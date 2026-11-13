@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import { Schema, Types, model } from 'mongoose';
 
 export interface IMovie {
   title: string;
@@ -9,6 +9,7 @@ export interface IMovie {
   description: string;
   reviewsCount: number;
   averageRating: number;
+  createdBy: Types.ObjectId;
 }
 
 // First film ever made was in 1888; allow a few years ahead for announced movies.
@@ -49,6 +50,8 @@ const movieSchema = new Schema<IMovie>(
     description: { type: String, required: true, trim: true },
     reviewsCount: { type: Number, default: 0 },
     averageRating: { type: Number, default: 0 },
+    // The admin who created the movie. ref tells Mongoose this id points to a User.
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true },
 );

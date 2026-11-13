@@ -1,7 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { errorHandler } from '../../src/middleware/errorHandler';
-import { BadRequestError, NotFoundError } from '../../src/utils/errors';
+import {
+  BadRequestError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from '../../src/utils/errors';
 
 // A fake Express response that records what the middleware sends.
 const mockResponse = () => {
@@ -37,6 +43,25 @@ describe('errorHandler', () => {
     const res = run(new BadRequestError('Invalid movie id'));
 
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it.each([
+    [new UnauthorizedError(), 401],
+    [new ForbiddenError(), 403],
+    [new ConflictError(), 409],
+  ])('returns the right status for %p', (error, status) => {
+    const res = run(error);
+
+    expect(res.status).toHaveBeenCalledWith(status);
+  });
+
+  it('returns 409 for a MongoDB duplicate key error', () => {
+    const error = Object.assign(new Error('E11000 duplicate key error'), { code: 11000 });
+
+    const res = run(error);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Duplicate value' });
   });
 
   it('returns 400 with field details for a Mongoose ValidationError', () => {

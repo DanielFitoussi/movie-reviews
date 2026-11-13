@@ -46,7 +46,8 @@ export const getMovie = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const createMovie = async (req: Request, res: Response): Promise<void> => {
-  const movie = await movieService.createMovie(req.body ?? {});
+  // req.user is always set here, because the route runs `authenticate` first.
+  const movie = await movieService.createMovie(req.body ?? {}, req.user!.id);
   res.status(201).json(movie);
 };
 

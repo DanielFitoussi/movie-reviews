@@ -7,6 +7,7 @@ const validMovie = () => ({
   director: 'Christopher Nolan',
   actors: ['Leonardo DiCaprio', 'Joseph Gordon-Levitt'],
   description: 'A thief who steals secrets through dreams.',
+  createdBy: '64b7f0000000000000000001',
 });
 
 describe('Movie model', () => {
@@ -29,7 +30,7 @@ describe('Movie model', () => {
     expect(movie.title).toBe('Inception');
   });
 
-  it.each(['title', 'releaseYear', 'genres', 'director', 'actors', 'description'])(
+  it.each(['title', 'releaseYear', 'genres', 'director', 'actors', 'description', 'createdBy'])(
     'requires %s',
     (field) => {
       const data: Record<string, unknown> = validMovie();

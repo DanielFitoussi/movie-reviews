@@ -5,6 +5,10 @@ import { useTestDatabase } from '../setup/db';
 
 useTestDatabase();
 
+// The admin who creates movies in these tests.
+const adminId = '64b7f0000000000000000001';
+const otherId = '64b7f0000000000000000002';
+
 const movieData = (overrides: Record<string, unknown> = {}) => ({
   title: 'Inception',
   releaseYear: 2010,
@@ -15,21 +19,38 @@ const movieData = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+// For Movie.create(), which bypasses the service and so needs createdBy itself.
+const savedMovieData = (overrides: Record<string, unknown> = {}) =>
+  movieData({ createdBy: adminId, ...overrides });
+
 const missingId = '64b7f0000000000000000000';
 
 describe('movie.service', () => {
   describe('createMovie', () => {
     it('saves the movie with default stats', async () => {
-      const movie = await movieService.createMovie(movieData());
+      const movie = await movieService.createMovie(movieData(), adminId);
 
       expect(movie.title).toBe('Inception');
       expect(movie.reviewsCount).toBe(0);
       expect(await Movie.countDocuments()).toBe(1);
     });
 
+    it('sets createdBy to the given user id', async () => {
+      const movie = await movieService.createMovie(movieData(), adminId);
+
+      expect(movie.createdBy.toString()).toBe(adminId);
+    });
+
+    it('ignores createdBy from the input', async () => {
+      const movie = await movieService.createMovie(movieData({ createdBy: otherId }), adminId);
+
+      expect(movie.createdBy.toString()).toBe(adminId);
+    });
+
     it('ignores reviewsCount, averageRating and unknown fields from the input', async () => {
       const movie = await movieService.createMovie(
         movieData({ reviewsCount: 99, averageRating: 9.9, hacked: true }),
+        adminId,
       );
 
       expect(movie.reviewsCount).toBe(0);
@@ -38,22 +59,22 @@ describe('movie.service', () => {
     });
 
     it('rejects invalid data', async () => {
-      await expect(movieService.createMovie(movieData({ genres: [] }))).rejects.toThrow(
-        /genres/,
-      );
+      await expect(
+        movieService.createMovie(movieData({ genres: [] }), adminId),
+      ).rejects.toThrow(/genres/);
     });
   });
 
   describe('listMovies', () => {
     beforeEach(async () => {
       await Movie.create([
-        movieData(),
-        movieData({
+        savedMovieData(),
+        savedMovieData({
           title: 'Interstellar',
           releaseYear: 2014,
           genres: ['Sci-Fi', 'Drama'],
         }),
-        movieData({
+        savedMovieData({
           title: 'Pulp Fiction',
           releaseYear: 1994,
           genres: ['Crime'],
@@ -75,7 +96,7 @@ describe('movie.service', () => {
     });
 
     it('treats regex characters in the title search as plain text', async () => {
-      await Movie.create(movieData({ title: 'What (If)' }));
+      await Movie.create(savedMovieData({ title: 'What (If)' }));
 
       expect(titles(await movieService.listMovies({ title: '(If)' }))).toEqual(['What (If)']);
       expect(await movieService.listMovies({ title: '.*' })).toHaveLength(0);
@@ -120,7 +141,7 @@ describe('movie.service', () => {
 
   describe('getMovieById', () => {
     it('returns the movie', async () => {
-      const created = await Movie.create(movieData());
+      const created = await Movie.create(savedMovieData());
 
       const movie = await movieService.getMovieById(created.id);
 
@@ -138,7 +159,7 @@ describe('movie.service', () => {
 
   describe('updateMovie', () => {
     it('changes only the fields that were sent', async () => {
-      const created = await Movie.create(movieData());
+      const created = await Movie.create(savedMovieData());
 
       const movie = await movieService.updateMovie(created.id, { title: 'Inception 2' });
 
@@ -147,7 +168,7 @@ describe('movie.service', () => {
     });
 
     it('validates the fields that were sent', async () => {
-      const created = await Movie.create(movieData());
+      const created = await Movie.create(savedMovieData());
 
       await expect(
         movieService.updateMovie(created.id, { releaseYear: 1500 }),
@@ -155,11 +176,19 @@ describe('movie.service', () => {
     });
 
     it('ignores reviewsCount and averageRating', async () => {
-      const created = await Movie.create(movieData());
+      const created = await Movie.create(savedMovieData());
 
       const movie = await movieService.updateMovie(created.id, { reviewsCount: 50 });
 
       expect(movie.reviewsCount).toBe(0);
+    });
+
+    it('ignores createdBy', async () => {
+      const created = await Movie.create(savedMovieData());
+
+      const movie = await movieService.updateMovie(created.id, { createdBy: otherId });
+
+      expect(movie.createdBy.toString()).toBe(adminId);
     });
 
     it('throws NotFoundError when the movie does not exist', async () => {
@@ -177,7 +206,7 @@ describe('movie.service', () => {
 
   describe('deleteMovie', () => {
     it('removes the movie', async () => {
-      const created = await Movie.create(movieData());
+      const created = await Movie.create(savedMovieData());
 
       await movieService.deleteMovie(created.id);
 
