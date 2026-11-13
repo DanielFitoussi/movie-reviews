@@ -24,10 +24,13 @@ Decisions about details the assignment left open on purpose.
 
 - All fields are required: title, release year, genres, director, actors, description.
 - `genres` and `actors` are arrays and must contain at least one item.
+- `releaseYear` is an integer from 1888 (the first film) to the current year + 5 (announced movies).
+- String fields are trimmed (leading and trailing spaces are removed). A title of only spaces counts as empty.
 - `createdBy` stores the admin who created the movie, taken from the JWT, not from the request body.
-- Search: partial, case-insensitive match on title. Can also filter by genre, year and director.
+- Search: partial, case-insensitive match on title. Can also filter by genre, year and director. Genre and director must match the whole value, ignoring case (`sci-fi` finds `Sci-Fi`, `sci` doesn't).
+- Updating a movie uses `PATCH /movies/:id`, not PUT. Only the fields that are sent change, and each one is still validated.
 - Deleting a movie also deletes all its reviews (cascade delete, done in code).
-- Each movie stores `reviewsCount` and `averageRating`. They are updated whenever a review is created, edited or deleted.
+- Each movie stores `reviewsCount` and `averageRating`. They are updated whenever a review is created, edited or deleted. They can't be set through the API: if the request body includes them, they are ignored.
 
 ## Reviews
 
