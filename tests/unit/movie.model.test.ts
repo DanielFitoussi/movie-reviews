@@ -11,10 +11,10 @@ const validMovie = () => ({
 });
 
 describe('Movie model', () => {
-  it('accepts a valid movie', () => {
+  it('accepts a valid movie', async () => {
     const movie = new Movie(validMovie());
 
-    expect(movie.validateSync()).toBeUndefined();
+    await expect(movie.validate()).resolves.toBeUndefined();
   });
 
   it('sets reviewsCount and averageRating to 0 by default', () => {
@@ -32,32 +32,32 @@ describe('Movie model', () => {
 
   it.each(['title', 'releaseYear', 'genres', 'director', 'actors', 'description', 'createdBy'])(
     'requires %s',
-    (field) => {
+    async (field) => {
       const data: Record<string, unknown> = validMovie();
       delete data[field];
 
-      const error = new Movie(data).validateSync();
+      const error = await new Movie(data).validate().catch((e) => e);
 
       expect(error?.errors[field]).toBeDefined();
     },
   );
 
-  it('rejects a title that is only spaces', () => {
-    const error = new Movie({ ...validMovie(), title: '   ' }).validateSync();
+  it('rejects a title that is only spaces', async () => {
+    const error = await new Movie({ ...validMovie(), title: '   ' }).validate().catch((e) => e);
 
     expect(error?.errors.title).toBeDefined();
   });
 
-  it.each(['genres', 'actors'])('rejects an empty %s array', (field) => {
-    const error = new Movie({ ...validMovie(), [field]: [] }).validateSync();
+  it.each(['genres', 'actors'])('rejects an empty %s array', async (field) => {
+    const error = await new Movie({ ...validMovie(), [field]: [] }).validate().catch((e) => e);
 
     expect(error?.errors[field]).toBeDefined();
   });
 
   it.each([1887, 2010.5, new Date().getFullYear() + 6])(
     'rejects releaseYear %p',
-    (year) => {
-      const error = new Movie({ ...validMovie(), releaseYear: year }).validateSync();
+    async (year) => {
+      const error = await new Movie({ ...validMovie(), releaseYear: year }).validate().catch((e) => e);
 
       expect(error?.errors.releaseYear).toBeDefined();
     },

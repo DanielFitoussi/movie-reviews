@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ quiet: true }); // don't print "injected env (N) from .env" on every load
 
 // Reads a variable that the app can't run without, and stops at startup if it's missing.
 const required = (name: string): string => {
