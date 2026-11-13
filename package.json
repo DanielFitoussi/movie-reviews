@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "test": "jest"
+    "test": "jest",
+    "seed": "tsx src/scripts/seed.ts"
   },
   "keywords": [],
   "author": "",
