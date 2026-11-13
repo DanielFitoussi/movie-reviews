@@ -26,7 +26,7 @@ Design decisions are documented in 'docs/decisions.md' . Read it before working 
 
 ## Project state
 
-The project skeleton is in place: TypeScript, an Express server with `GET /health`, a MongoDB connection through Mongoose, and Jest tests. Movies are done (CRUD + search; writes are admin only). Users and JWT authentication are done (register, login, `authenticate`/`requireAdmin` middleware). Reviews aren't built yet. Swagger, the seed script and linting aren't set up yet.
+The project skeleton is in place: TypeScript, an Express server with `GET /health`, a MongoDB connection through Mongoose, and Jest tests. Movies are done (CRUD + search; writes are admin only). Users and JWT authentication are done (register, login, `authenticate`/`requireAdmin` middleware). Reviews are done (CRUD, movie stats, cascade delete). Swagger, the seed script and linting aren't set up yet.
 
 - The code is TypeScript, written with `import`/`export` and compiled as CommonJS (`"type": "commonjs"`, `module: commonjs` in `tsconfig.json`).
 - TypeScript is pinned to `^6`. TypeScript 7 (the native compiler) doesn't expose the JS compiler API that `ts-jest` needs, so don't upgrade it until `ts-jest` supports it.
@@ -54,7 +54,8 @@ The project skeleton is in place: TypeScript, an Express server with `GET /healt
   - Health has no logic, so it stops at the controller.
 - **Errors:** services throw `AppError` subclasses from `src/utils/errors.ts` (`BadRequestError`, `UnauthorizedError`, `ForbiddenError`, `NotFoundError`, `ConflictError`). `src/middleware/errorHandler.ts` is registered last in `app.ts` and turns them, plus Mongoose `ValidationError`/`CastError`, MongoDB duplicate key errors (409) and invalid JSON, into `{ error, details? }` responses. Express 5 forwards rejected promises there, so controllers have no try/catch.
 - **Auth:** `POST /auth/register` and `POST /auth/login` (`auth.service.ts`). The User model hashes the password in a `pre('save')` hook and hides it with `select: false`. `src/middleware/auth.middleware.ts` has `authenticate` (verifies the Bearer JWT, sets `req.user = { id, role }`, else 401) and `requireAdmin` (403 unless admin, use after `authenticate`). Admins are never created through the API.
-- **Movies:** update is `PATCH /movies/:id` (partial), not PUT. The service copies only the editable fields, so clients can't set `reviewsCount`/`averageRating`/`createdBy`. `createdBy` comes from `req.user`. Cascade delete of reviews comes with the reviews task.
+- **Movies:** update is `PATCH /movies/:id` (partial), not PUT. The service copies only the editable fields, so clients can't set `reviewsCount`/`averageRating`/`createdBy`. `createdBy` comes from `req.user`. `deleteMovie` also deletes the movie's reviews.
+- **Reviews:** `GET/POST /movies/:id/reviews`, `PATCH/DELETE /reviews/:id` (`review.service.ts`). Author/admin checks are in the service, since they depend on the review. Every review change calls `updateMovieStats(movieId, countDelta, ratingDelta)` in `movie.service.ts`: one atomic pipeline update (`updatePipeline: true`) on `reviewsCount`, the hidden `ratingsSum` and `averageRating`. Never update the stats by reading the movie, computing in Node and saving: concurrent requests would lose updates. Tests that need the unique `{ movieId, userId }` index call `await Review.init()` first.
 - **Config:** `src/config/env.ts` loads `.env` with dotenv and throws at import time if `MONGODB_URI` or `JWT_SECRET` is missing. `src/config/db.ts` exports `connectDB(uri)`.
 - **Tests:** they live in `tests/` (`jest.config.js` sets `roots` to it) and run through `ts-jest`. API tests use `supertest` against the exported `app`.
   - `tests/unit/` (no DB), `tests/integration/` (services + DB), `tests/api/` (HTTP + DB).

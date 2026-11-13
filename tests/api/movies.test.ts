@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../../src/app';
 import { Movie } from '../../src/models/movie.model';
+import { Review } from '../../src/models/review.model';
 import { getToken } from '../setup/auth';
 import { useTestDatabase } from '../setup/db';
 
@@ -118,6 +119,7 @@ describe('Movies API', () => {
       expect(res.status).toBe(201);
       expect(res.body).toMatchObject({ ...movieData(), reviewsCount: 0, averageRating: 0 });
       expect(res.body._id).toBeDefined();
+      expect(res.body).not.toHaveProperty('ratingsSum');
       expect(await Movie.countDocuments()).toBe(1);
     });
 
@@ -226,6 +228,15 @@ describe('Movies API', () => {
       expect(res.status).toBe(204);
       expect(res.body).toEqual({});
       expect(await Movie.countDocuments()).toBe(0);
+    });
+
+    it("also deletes the movie's reviews", async () => {
+      const movie = await Movie.create(savedMovieData());
+      await Review.create({ movieId: movie.id, userId: admin.user.id, rating: 8, text: 'Great' });
+
+      await request(app).delete(`/movies/${movie.id}`).set(asAdmin());
+
+      expect(await Review.countDocuments()).toBe(0);
     });
 
     it('returns 404 when the movie does not exist', async () => {

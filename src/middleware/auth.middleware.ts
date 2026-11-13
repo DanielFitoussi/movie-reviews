@@ -4,12 +4,18 @@ import { env } from '../config/env';
 import { Role } from '../models/user.model';
 import { ForbiddenError, UnauthorizedError } from '../utils/errors';
 
+// The logged-in user, as read from the JWT.
+export interface AuthUser {
+  id: string;
+  role: Role;
+}
+
 // Tells TypeScript that a Request can carry the logged-in user,
 // which `authenticate` adds below.
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: string; role: Role };
+      user?: AuthUser;
     }
   }
 }

@@ -9,6 +9,7 @@ export interface IMovie {
   description: string;
   reviewsCount: number;
   averageRating: number;
+  ratingsSum: number;
   createdBy: Types.ObjectId;
 }
 
@@ -50,10 +51,23 @@ const movieSchema = new Schema<IMovie>(
     description: { type: String, required: true, trim: true },
     reviewsCount: { type: Number, default: 0 },
     averageRating: { type: Number, default: 0 },
+    // The exact sum of all ratings. averageRating is rounded, so it can't be used to
+    // recompute the average; this can. Internal only: select: false keeps it out of
+    // query results, and the toJSON transform below removes it from responses.
+    ratingsSum: { type: Number, default: 0, select: false },
     // The admin who created the movie. ref tells Mongoose this id points to a User.
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: {
+      // A newly created movie still has ratingsSum loaded (select: false only affects queries).
+      transform: (_doc, ret: Record<string, unknown>) => {
+        delete ret.ratingsSum;
+        return ret;
+      },
+    },
+  },
 );
 
 export const Movie = model<IMovie>('Movie', movieSchema);

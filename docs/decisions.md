@@ -40,7 +40,11 @@ Decisions about details the assignment left open on purpose.
 - Separate collection. Each review stores `movieId` and `userId`, and `userId` is taken from the JWT.
 - `rating` is an integer from 1 to 10. `text` is required.
 - One review per user per movie, using a unique index on `movieId` and `userId`. A duplicate returns 409.
-- The average rating is rounded to one decimal place.
+- The average rating is rounded to one decimal place, halves up (7.25 → 7.3).
+- Each movie also stores `ratingsSum`, the exact sum of its ratings, because the rounded average can't be used to recompute the average. It is internal and never returned by the API.
+- The stats are changed with one atomic MongoDB update per review change (add to the count and the sum, then recompute the average from them). This keeps them correct when several reviews are created, edited or deleted at the same time. No transactions: if the server crashed exactly between saving a review and updating the stats, they would be off by one review.
+- `GET /movies/:id/reviews` is public, lists newest first, and shows each author's username.
+- Only the author can edit a review (not even an admin). Only `rating` and `text` can be changed.
 
 ## General
 
