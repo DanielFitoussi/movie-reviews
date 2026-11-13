@@ -85,7 +85,7 @@ export const createMovie = async (input: Record<string, unknown>, userId: string
 export const updateMovie = async (id: string, input: Record<string, unknown>) => {
   assertValidId(id);
   const movie = await Movie.findByIdAndUpdate(id, pickEditableFields(input), {
-    new: true, // return the movie after the update, not before
+    returnDocument: 'after', // return the movie after the update, not before
     runValidators: true, // without this, Mongoose skips validation on updates
   });
   if (!movie) {

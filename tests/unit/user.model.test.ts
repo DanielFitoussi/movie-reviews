@@ -3,20 +3,20 @@ import { User } from '../../src/models/user.model';
 const validUser = () => ({ username: 'dana', password: 'password123' });
 
 describe('User model', () => {
-  it('accepts a valid user', () => {
-    expect(new User(validUser()).validateSync()).toBeUndefined();
+  it('accepts a valid user', async () => {
+    await expect(new User(validUser()).validate()).resolves.toBeUndefined();
   });
 
   it('sets role to "user" by default', () => {
     expect(new User(validUser()).role).toBe('user');
   });
 
-  it('accepts the "admin" role', () => {
-    expect(new User({ ...validUser(), role: 'admin' }).validateSync()).toBeUndefined();
+  it('accepts the "admin" role', async () => {
+    await expect(new User({ ...validUser(), role: 'admin' }).validate()).resolves.toBeUndefined();
   });
 
-  it('rejects an unknown role', () => {
-    const error = new User({ ...validUser(), role: 'superuser' }).validateSync();
+  it('rejects an unknown role', async () => {
+    const error = await new User({ ...validUser(), role: 'superuser' }).validate().catch((e) => e);
 
     expect(error?.errors.role).toBeDefined();
   });
@@ -25,17 +25,17 @@ describe('User model', () => {
     expect(new User({ ...validUser(), username: '  Dana  ' }).username).toBe('dana');
   });
 
-  it.each(['username', 'password'])('requires %s', (field) => {
+  it.each(['username', 'password'])('requires %s', async (field) => {
     const data: Record<string, unknown> = validUser();
     delete data[field];
 
-    const error = new User(data).validateSync();
+    const error = await new User(data).validate().catch((e) => e);
 
     expect(error?.errors[field]).toBeDefined();
   });
 
-  it('rejects a password shorter than 8 characters', () => {
-    const error = new User({ ...validUser(), password: '1234567' }).validateSync();
+  it('rejects a password shorter than 8 characters', async () => {
+    const error = await new User({ ...validUser(), password: '1234567' }).validate().catch((e) => e);
 
     expect(error?.errors.password).toBeDefined();
   });

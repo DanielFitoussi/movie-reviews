@@ -8,25 +8,25 @@ const validReview = () => ({
 });
 
 describe('Review model', () => {
-  it('accepts a valid review', () => {
-    expect(new Review(validReview()).validateSync()).toBeUndefined();
+  it('accepts a valid review', async () => {
+    await expect(new Review(validReview()).validate()).resolves.toBeUndefined();
   });
 
-  it.each(['movieId', 'userId', 'rating', 'text'])('requires %s', (field) => {
+  it.each(['movieId', 'userId', 'rating', 'text'])('requires %s', async (field) => {
     const data: Record<string, unknown> = validReview();
     delete data[field];
 
-    const error = new Review(data).validateSync();
+    const error = await new Review(data).validate().catch((e) => e);
 
     expect(error?.errors[field]).toBeDefined();
   });
 
-  it.each([1, 10])('accepts rating %p', (rating) => {
-    expect(new Review({ ...validReview(), rating }).validateSync()).toBeUndefined();
+  it.each([1, 10])('accepts rating %p', async (rating) => {
+    await expect(new Review({ ...validReview(), rating }).validate()).resolves.toBeUndefined();
   });
 
-  it.each([0, 11, 7.5])('rejects rating %p', (rating) => {
-    const error = new Review({ ...validReview(), rating }).validateSync();
+  it.each([0, 11, 7.5])('rejects rating %p', async (rating) => {
+    const error = await new Review({ ...validReview(), rating }).validate().catch((e) => e);
 
     expect(error?.errors.rating).toBeDefined();
   });
@@ -35,8 +35,8 @@ describe('Review model', () => {
     expect(new Review({ ...validReview(), text: '  Great.  ' }).text).toBe('Great.');
   });
 
-  it('rejects text that is only spaces', () => {
-    const error = new Review({ ...validReview(), text: '   ' }).validateSync();
+  it('rejects text that is only spaces', async () => {
+    const error = await new Review({ ...validReview(), text: '   ' }).validate().catch((e) => e);
 
     expect(error?.errors.text).toBeDefined();
   });

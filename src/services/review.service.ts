@@ -101,13 +101,15 @@ export const updateReview = async (
   await review.validate();
 
   // Write only the changed fields. findOneAndUpdate returns the review as it was
-  // just before this update (new: false), in the same atomic step, so the old
+  // just before this update (returnDocument: 'before'), in the same atomic step, so the old
   // rating is exactly the one this update replaced, even if another edit ran at the same time.
   const newValues: Partial<IReview> = {};
   for (const field of Object.keys(changes) as (keyof IReview)[]) {
     Object.assign(newValues, { [field]: review.get(field) });
   }
-  const before = await Review.findOneAndUpdate({ _id: reviewId }, newValues, { new: false });
+  const before = await Review.findOneAndUpdate({ _id: reviewId }, newValues, {
+    returnDocument: 'before',
+  });
   if (!before) {
     throw reviewNotFound(); // deleted in the meantime
   }
