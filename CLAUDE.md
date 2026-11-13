@@ -26,7 +26,7 @@ Design decisions are documented in 'docs/decisions.md' . Read it before working 
 
 ## Project state
 
-The project skeleton is in place: TypeScript, an Express server with `GET /health`, a MongoDB connection through Mongoose, and Jest tests. There's no domain code yet (no movies, reviews or users). Swagger, JWT and linting aren't set up yet.
+The project skeleton is in place: TypeScript, an Express server with `GET /health`, a MongoDB connection through Mongoose, and Jest tests. Movies are done (CRUD + search, no permissions yet). Reviews and users aren't built yet. Swagger, JWT and linting aren't set up yet.
 
 - The code is TypeScript, written with `import`/`export` and compiled as CommonJS (`"type": "commonjs"`, `module: commonjs` in `tsconfig.json`).
 - TypeScript is pinned to `^6`. TypeScript 7 (the native compiler) doesn't expose the JS compiler API that `ts-jest` needs, so don't upgrade it until `ts-jest` supports it.
@@ -51,9 +51,14 @@ The project skeleton is in place: TypeScript, an Express server with `GET /healt
   - `src/controllers/`: read the request, call a service, send the response.
   - `src/services/`: business logic.
   - `src/models/`: Mongoose schemas.
-  - `services/` and `models/` are empty for now (`.gitkeep`). Health has no logic, so it stops at the controller.
+  - Health has no logic, so it stops at the controller.
+- **Errors:** services throw `AppError` subclasses from `src/utils/errors.ts` (`BadRequestError`, `NotFoundError`). `src/middleware/errorHandler.ts` is registered last in `app.ts` and turns them, plus Mongoose `ValidationError`/`CastError` and invalid JSON, into `{ error, details? }` responses. Express 5 forwards rejected promises there, so controllers have no try/catch.
+- **Movies:** update is `PATCH /movies/:id` (partial), not PUT. The service copies only the editable fields, so clients can't set `reviewsCount`/`averageRating`. `createdBy` and cascade delete of reviews come with the users/reviews tasks.
 - **Config:** `src/config/env.ts` loads `.env` with dotenv and throws at import time if `MONGODB_URI` is missing. `src/config/db.ts` exports `connectDB(uri)`.
 - **Tests:** they live in `tests/` (`jest.config.js` sets `roots` to it) and run through `ts-jest`. API tests use `supertest` against the exported `app`.
+  - `tests/unit/` (no DB), `tests/integration/` (services + DB), `tests/api/` (HTTP + DB).
+  - Tests that need a DB call `useTestDatabase()` from `tests/setup/db.ts`. It starts an in-memory MongoDB (`mongodb-memory-server`), clears collections after each test, and never touches the `.env` database. The first run downloads the mongod binary.
+  - That helper passes `runtimeAdapters: { os }` to `mongoose.connect`. Without it, MongoDB driver 7 fails inside Jest ("Missing required sub-document 'driver'"), because it loads `os` with a dynamic `import()` that Jest's sandbox doesn't support. Keep it in any new connection made in tests.
 
 ## Work rules
 
