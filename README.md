@@ -167,4 +167,4 @@ This project was built with [Claude Code](https://claude.com/claude-code), follo
 
 ## Demo video
 
-Link will be added.
+[Watch the demo video](https://drive.google.com/file/d/1agtyYB-E52u0EG5JNREUqafzJUxoth-P/view?usp=sharing)
